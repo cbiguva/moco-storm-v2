@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.DS_Store
+._*
+
+# Data and run outputs never go into git
+data/
+mocostorm_runs/
+*.h5
+*.npy
+*.nii
+*.nii.gz
+*.pth
+logs/
+outputs/*
+*/outputs/*
