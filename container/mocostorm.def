@@ -1,0 +1,43 @@
+Bootstrap: docker
+From: nvidia/cuda:11.4.3-cudnn8-runtime-ubuntu20.04
+
+%files
+    environment.yml /opt/environment.yml
+    micromamba /usr/local/bin/micromamba
+
+%environment
+    export PATH=/opt/env/bin:$PATH
+    # Keep packages in the ~/.local of host out of the container Python.
+    export PYTHONNOUSERSITE=1
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+
+%post
+    set -eu
+    export MAMBA_ROOT_PREFIX=/opt/mamba
+    micromamba create -y -p /opt/env -f /opt/environment.yml
+    # xorg-libx11: conda-forge tk expects libX11 from the OS, which the CUDA
+    # runtime base lacks; without it gui/moco_viewer.py cannot import tkinter.
+    micromamba install -y -p /opt/env -c conda-forge xorg-libx11
+    micromamba clean -y --all
+    rm -rf /opt/mamba/pkgs /root/.cache/pip
+
+%runscript
+    exec python "$@"
+
+%test
+    set -e
+    export PATH=/opt/env/bin:$PATH
+    # sigpy's numba kernels need a writable cache; at run time numba uses
+    # ~/.cache/numba, but during the build there is no writable home.
+    export NUMBA_CACHE_DIR=$(mktemp -d)
+    python -c "import torch, sigpy, numpy, scipy, h5py, nibabel, statsmodels, yaml; print('torch', torch.__version__, 'cuda', torch.version.cuda, '| sigpy', sigpy.__version__)"
+    # Importing cupy needs the driver's libcuda.so.1, which only exists when
+    # Running with --nv on a GPU node. Here, only check the wheel is installed.
+    python -c "from importlib.metadata import version; print('cupy-cuda114', version('cupy-cuda114'))"
+    # Loads libtk/libX11 for the viewer; opening a window needs a display.
+    python -c "import tkinter; print('tk', tkinter.TkVersion)"
+
+%labels
+    Name mocostorm
+    Version 2.0.0
