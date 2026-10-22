@@ -93,7 +93,7 @@ Each run is save in a different folder, `<data.output_dir>/<run_name or timestam
 
 
 
-### Viewer
+## Viewer
 
 `gui/moco_viewer.py` is the viewer for visualizing the dynamics captured by the latents. It runs inside the same Apptainer image, so no separate environment is needed. However, it needs a display and a CUDA GPU. So, start it from an interactive GPU session with X forwarding enabled (e.g. `FastX`, or `ssh -X` followed by `qlogin` with a GPU request).
 
