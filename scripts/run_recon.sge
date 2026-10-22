@@ -1,0 +1,33 @@
+#!/bin/bash
+#$ -N mocostorm
+#$ -cwd
+#$ -j y
+#$ -o /nfsscratch/Users/$USER/mocostorm_logs/
+#$ -q # !ADD THE QUEUE NAME HERE
+#$ -pe smp 60
+#$ -l gpu_a100=true
+#$ -M # !ADD YOUR EMAIL TO GET NOTIFICATION
+#$ -m e
+
+# Stop if any command fails
+set -euo pipefail
+
+CONFIG=${1:?usage: qsub scripts/run_recon.sge <config.yaml> [extra CLI args]}
+shift
+
+# Everything runs in the Apptainer image (scripts/build_container.sge).
+# Set MOCOSTORM_SIF to use an image other than ~/containers/mocostorm.sif.
+RUN="${SGE_O_WORKDIR:-$PWD}/scripts/mocostorm-exec"
+
+# Must be set before torch initialises CUDA.
+# export PYTORCH_CUDA_ALLOC_CONF="max_split_size_mb:512"
+
+echo "Host $(hostname), job ${JOB_ID:-local}, GPUs ${CUDA_VISIBLE_DEVICES:-?}, config ${CONFIG}"
+"${RUN}" python -m executor --config "${CONFIG}" "$@"
+
+# USAGE:
+#   qsub scripts/run_recon.sge configs/phantom.yaml
+#   qsub scripts/run_recon.sge configs/phantom.yaml --set training.epochs.64=20
+#
+# SUBMIT FROM THE REPOSITORY ROOT. ENSURE THE LOG DIRECTORY IS CREATED:
+#   mkdir -p /nfsscratch/Users/$USER/mocostorm_logs

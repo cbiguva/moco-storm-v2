@@ -1,0 +1,41 @@
+#!/bin/bash
+#$ -N mocostorm_build
+#$ -cwd
+#$ -j y
+#$ -o /nfsscratch/Users/$USER/mocostorm_logs/
+#$ -q # !ADD THE QUEUE NAME HERE
+#$ -pe smp 4
+#$ -l h_rt=03:00:00
+
+# Stop if any command fails
+set -euo pipefail
+
+REPO="${SGE_O_WORKDIR:-$PWD}"
+SIF=${1:-${MOCOSTORM_SIF:-${HOME}/containers/mocostorm.sif}}
+mkdir -p "$(dirname "${SIF}")"
+
+# Unpacking and squashing several GB of layers: keep it on node-local disk.
+WORK="/localscratch/Users/${USER}/mocostorm_build.${JOB_ID:-$$}"
+mkdir -p "${WORK}/stage" "${WORK}/tmp"
+trap 'rm -rf "${WORK}"' EXIT
+export APPTAINER_TMPDIR="${WORK}/tmp"
+export APPTAINER_CACHEDIR="${WORK}/cache"
+
+# Build context: %files in the definition reads from here.
+cp "${REPO}/environment.yml" "${WORK}/stage/"
+curl -fsSL https://micro.mamba.pm/api/micromamba/linux-64/latest \
+    | tar -xj -C "${WORK}/stage" --strip-components=1 bin/micromamba
+
+echo "Host $(hostname), job ${JOB_ID:-local}, building ${SIF}"
+cd "${WORK}/stage"
+# Write to a temporary name so a failed build never replaces a working image.
+apptainer build --fakeroot --force "${SIF}.partial" "${REPO}/container/mocostorm.def"
+mv -f "${SIF}.partial" "${SIF}"
+echo "Done: ${SIF}"
+
+
+# USAGE (from the repository root):
+#   mkdir -p /nfsscratch/Users/$USER/mocostorm_logs
+#   qsub scripts/build_container.sge                    # -> ~/containers/mocostorm.sif
+#   qsub scripts/build_container.sge /path/to/other.sif
+# Rebuild only when environment.yml or container/mocostorm.def changes.

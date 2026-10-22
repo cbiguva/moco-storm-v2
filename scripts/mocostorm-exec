@@ -1,0 +1,33 @@
+#!/bin/bash
+# Run a command inside the MoCo-SToRM Apptainer image, with the repository
+# importable and the GPU visible when the node has one.
+#
+#   scripts/mocostorm-exec python -m executor --config configs/phantom.yaml --dry-run
+#   scripts/mocostorm-exec python -m pytest
+#
+# MOCOSTORM_SIF    image path (default ~/containers/mocostorm.sif)
+# MOCOSTORM_BINDS  extra bind paths, comma separated, for data outside
+#                  $HOME, /nfsscratch, /localscratch, /Dedicated, /Shared
+
+set -euo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SIF=${MOCOSTORM_SIF:-${HOME}/containers/mocostorm.sif}
+
+if [[ ! -f "${SIF}" ]]; then
+    echo "mocostorm-exec: no image at ${SIF}; build it with: qsub scripts/build_container.sge" >&2
+    exit 1
+fi
+
+BINDS="${REPO}${MOCOSTORM_BINDS:+,${MOCOSTORM_BINDS}}"
+NV=()
+if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+    NV=(--nv)
+fi
+
+# The host environment (CUDA_VISIBLE_DEVICES, JOB_ID, ...) passes through, but
+# PATH inside comes from the image, so a host conda env cannot leak in.
+# The host PYTHONPATH is dropped for the same reason: only the repository.
+unset PYTHONPATH
+export APPTAINERENV_PYTHONPATH="${REPO}"
+exec apptainer exec ${NV[@]+"${NV[@]}"} --bind "${BINDS}" --pwd "${PWD}" "${SIF}" "$@"
