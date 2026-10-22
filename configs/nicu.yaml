@@ -1,0 +1,34 @@
+# Configuration for NICU dataset:
+# 1 coil, 1 encoding, 199956 readouts x 1013 samples, TR 5.2 ms, k-max 127.8 (256 matrix).
+
+data:
+  data_dir: /path/to/your/repo/data                                     # REQUIRED. Folder with MRI_Raw.h5 (or ksp.npy, dcf.npy, coord.npy)
+  output_dir: /path/to/your/repo/outputs                                # Parent folder for saving output; null = <data_dir>/mocostorm_runs
+  im_size: [256, 256, 256]                                              # Final matrix size - 64, 128, 256, 320
+  fov: 256                                                              # Used for voxel size computation and NIfTI header
+
+coils:
+  n_virtual_coils: 1                                                    # PCA virtual coils (capped by the number of selected coils)
+  sensitivity_method: lowres                                            # lowres | jsense
+  random_coil_subset: null                                              # Coils used per optimization step; null = all
+
+latent:
+  latent_type: resp_cardiac                                             # in_exp | resp_cardiac
+  resp_latent: false                                                    # Bin by respiration (requires resp_cardiac, see README)
+  bulk_latent: false                                                    # Bin by bulk motion first (requires siz_l >= 3)
+  invert_resp: true                                                     # Flip the navigator so end expiration is a minimum
+  optimize_latent: bulk                                                 # none | full (learn the whole latent) | bulk (learn extra columns)
+  n_states: 2000                                                        # Motion states the frames are grouped into
+  siz_l: 2                                                              # Navigator columns used (latent width when full)
+
+model:
+  gen_base: 52                                                          # Generator width d
+  out_channels: 3                                                       # Flow components
+
+training:
+  epochs: {64: 250, 128: 200, 256: 300}                                 # Training epochs for different stages
+  tv_reg: 2.0e-9                                                        # Weight for TV regularization
+  grad_clip: null                                                       # Max gradient norm; null = no clipping
+
+operators:
+  probe_operators: false                                                # Check every state's NUFFT for non-finite output

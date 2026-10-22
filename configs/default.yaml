@@ -1,0 +1,61 @@
+# Default set of parameters to run the algorithm
+
+data:
+  data_dir: ""                      # REQUIRED. Folder with MRI_Raw.h5 (or ksp.npy, dcf.npy, coord.npy)
+  output_dir: null                  # Parent folder for saving output; null = <data_dir>/mocostorm_runs
+  im_size: [256, 256, 256]          # Final matrix size - 64, 128, 256, 320
+  fov: 320.0                        # mm, used for the NIfTI header
+  zoom_factor: 1.0                  # Scales k-space coordinates (2 halves the FOV)
+  tr: null                          # in (second); only needed when the navigator is read from ksp.npy
+
+coils:
+  n_virtual_coils: 8                # PCA virtual coils (capped by the number of selected coils)
+  sensitivity_method: lowres        # lowres | jsense
+  selection: outside_fov            # outside_fov | center_of_mass
+  outside_fov_threshold: 0.1        # outside/inside FOV energy ratio for 'outside_fov'
+  sense_process: smooth             # smooth | polynomial | none ('lowres' maps only)
+  random_coil_subset: 4             # Coils used per optimization step; null = all
+
+latent:
+  latent_type: resp_cardiac         # in_exp | resp_cardiac (navigator columns 0-1)
+  resp_latent: true                 # Bin by respiration (requires resp_cardiac, see README)
+  bulk_latent: false                # Bin by bulk motion first (requires siz_l >= 3)
+  invert_resp: true                 # Flip the navigator so end expiration is a minimum
+  optimize_latent: none             # none | full (learn the whole latent) | bulk (learn extra columns)
+  n_frames: 300                     # Frames when optimize_latent = full
+  n_states: 2000                    # Motion states the frames are grouped into
+  siz_l: 2                          # Navigator columns used (latent width when full)
+  siz_bulk_l: 1                     # Extra trainable columns when optimize_latent = bulk
+  bulk_states: 1
+  cardiac_states: 8
+  lf_width: 0.5                     # s, respiratory smoother (resp_cardiac)
+  hf_width: 0.1                     # s, cardiac smoother (resp_cardiac)
+
+model:
+  gen_base: 52                      # Generator width d
+  out_channels: 3                   # Flow components
+
+training:
+  epochs: {64: 200, 128: 100, 256: 100, 320: 100}
+  tv_reg: 1.0e-9                    # Template smoothness weight (x0.1 in a latent-learning stage 1)
+  grad_clip: null                   # Max gradient norm; null = no clipping
+  align_generators: true            # Fit each new generator to the upsampled previous one
+  alignment_epochs: 50
+  alignment_lr: 1.0e-4
+  freeze_generator_above64: false   # Only refine the template after stage 1
+  top_layer_epochs: 10              # Top-layer warm-up, only when align_generators is false
+  log_every: 25                     # Epochs between progress logs / snapshots
+
+operators:
+  dcf_epsilon: 0.005                # Added to sqrt(dcf) in the data weighting
+  maxeig_iter: 30                   # Power iterations for DCF normalisation
+  nufft_oversamp: 2.0
+  probe_operators: true             # Check every state's NUFFT for non-finite output
+  probe_value: 1000.0
+
+runtime:
+  run_name: null                    # Run folder name; null = timestamp
+  seed: 0                           # null = unseeded
+  gpu: null                         # CUDA index; null = first GPU with min_free_gb free
+  min_free_gb: 40.0
+  verbose: true
