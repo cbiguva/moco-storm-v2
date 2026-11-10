@@ -38,6 +38,7 @@ To further develop an existing manifold-based reconstruction method and apply it
 ||`mocostorm-exec`|Runs necessary commands inside the container to bind required directories|
 ||`run_recon.sge`|Run the reconstruction|
 |`container/`|`mocostorm.def`|Apptainer definition file|
+|`static/`||Contains the resources of the repo|
 
 
 
