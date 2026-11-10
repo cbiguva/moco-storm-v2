@@ -1,5 +1,7 @@
 # Manifold based Dynamic Free Breathing Pulmonary UTE MR Image Reconstruction and Retrospective Motion Compensation for Neonatal Subjects with Bulk Motion
 
+![Respiratory Dynmics](./static/resp_dynamics.gif)
+
 ## Background
 Dynamic lung MRI in neonates is challenging because rapid breathing and bulk motion make high-resolution image reconstruction severely ill-posed. Manifold-based methods that jointly estimate image and motion show promise for high-quality pulmonary imaging in this vulnerable population.
 
